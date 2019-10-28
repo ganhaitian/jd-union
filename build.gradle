@@ -1,0 +1,36 @@
+plugins {
+    id 'java'
+}
+
+group 'com.tiantian'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 12
+
+repositories {
+    mavenCentral()
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = "UTF-8"
+}
+
+sourceCompatibility = 12
+targetCompatibility = 12
+
+def compilerArgs = ['-Xlint:-options', '-g'] //'-Xlint:unchecked', '-Xlint:deprecation'
+compileJava.options.compilerArgs = compilerArgs
+compileTestJava.options.compilerArgs = compilerArgs
+
+def sourceEncoding = 'UTF-8'
+compileJava.options.encoding = sourceEncoding
+compileTestJava.options.encoding = sourceEncoding
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+    compile files('lib/jd-cps-client-2.2.jar')
+
+    compile "com.fasterxml.jackson.core:jackson-databind:2.9.6"
+    compile "com.fasterxml.jackson.core:jackson-core:2.9.6"
+    compile "com.fasterxml.jackson.core:jackson-annotations:2.9.6"
+}
