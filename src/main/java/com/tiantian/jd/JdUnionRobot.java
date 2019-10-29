@@ -1,14 +1,25 @@
 package com.tiantian.jd;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.jd.open.api.sdk.DefaultJdClient;
 import com.jd.open.api.sdk.JdException;
 import jd.union.open.goods.jingfen.query.request.JFGoodsReq;
 import jd.union.open.goods.jingfen.query.request.UnionOpenGoodsJingfenQueryRequest;
 import jd.union.open.goods.jingfen.query.response.UnionOpenGoodsJingfenQueryResponse;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.time.Duration;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 
 /**
@@ -19,6 +30,8 @@ public class JdUnionRobot {
     private final static String SERVER_URL = "https://router.jd.com/api";
     private final static String APP_KEY    = "0cb0d224e96e918189ab3c9bcd147d39";
     private final static String APP_SECRET = "447eba325001490a9778f1055d6adb2e";
+
+    private final static int PROMOTION_GOODS_TIMEOUT = 5000;
 
     public void getSelectionGoods() {
         var client  = new DefaultJdClient(SERVER_URL, null, APP_KEY, APP_SECRET);
@@ -37,9 +50,73 @@ public class JdUnionRobot {
         }
     }
 
+    public void getPromotionGoods(){
+        HttpClient client = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofMillis(PROMOTION_GOODS_TIMEOUT))
+                .followRedirects(HttpClient.Redirect.NORMAL)
+                .build();
+
+        // 从配置文件中读取cookie
+        String cookie = Optional.of(this.getClass())
+               .map(Class::getClassLoader)
+                .map(clsLoader -> clsLoader.getResourceAsStream("cookie"))
+                .map(InputStreamReader::new)
+                .map(BufferedReader::new)
+                .map(reader -> {
+                    try {
+                        return reader.readLine();
+                    } catch (IOException e) {
+                        return null;
+                    }
+                })
+                .orElse(null);
+
+        if(cookie == null){
+            return;
+        }
+
+        // 拼传入的参数
+        JSONObject mainJson = new JSONObject();
+        mainJson.put("pageNo", 1);
+        mainJson.put("pageSize", 60);
+        mainJson.put("searchUUID", "4a5fe0385949423ebcb9e9a7989b69aa");
+
+        JSONObject dataJson = new JSONObject();
+        dataJson.put("deliveryType", 0);
+        dataJson.put("hasCoupon", 0);
+        dataJson.put("isPinGou", 0);
+        dataJson.put("isZY", 0);
+        dataJson.put("isCare", 0);
+        dataJson.put("lock", 0);
+        dataJson.put("orientationFlag", 0);
+        dataJson.put("searchType", "st3");
+        dataJson.put("keywordType", "kt0");
+        mainJson.put("data", dataJson);
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("https://union.jd.com/api/goods/search"))
+                .header("Content-Type", "application/json")
+                .header("Cookie", cookie)
+                .POST(HttpRequest.BodyPublishers.ofString(mainJson.toString()))
+                .timeout(Duration.ofMillis(5009))
+                .build();
+
+        HttpResponse<String> response;
+        try {
+            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200){
+                return;
+            }
+
+            JSON.parseObject(response.body());
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
     public static void main(String[] args) {
         //new JdUnionRobot().getSelectionGoods();
-        try {
+        /*try {
             System.out.println(new JdUnionRobot().buildSign(
                     "2019-10-28 11:15:18",
                     "1.0", "md5", "json",
@@ -48,7 +125,9 @@ public class JdUnionRobot {
                     null, APP_KEY, APP_SECRET));
         } catch (Exception e) {
             e.printStackTrace();
-        }
+        }*/
+
+        new JdUnionRobot().getPromotionGoods();
     }
 
     private String buildSign(String timestamp,
