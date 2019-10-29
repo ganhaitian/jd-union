@@ -31,7 +31,14 @@ public class JdUnionRobot {
     private final static String APP_KEY    = "0cb0d224e96e918189ab3c9bcd147d39";
     private final static String APP_SECRET = "447eba325001490a9778f1055d6adb2e";
 
+    // Time out value of getting promotion goods
     private final static int PROMOTION_GOODS_TIMEOUT = 5000;
+
+    // http client
+    private HttpClient client = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofMillis(PROMOTION_GOODS_TIMEOUT))
+            .followRedirects(HttpClient.Redirect.NORMAL)
+            .build();
 
     public void getSelectionGoods() {
         var client  = new DefaultJdClient(SERVER_URL, null, APP_KEY, APP_SECRET);
@@ -50,12 +57,7 @@ public class JdUnionRobot {
         }
     }
 
-    public void getPromotionGoods(){
-        HttpClient client = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofMillis(PROMOTION_GOODS_TIMEOUT))
-                .followRedirects(HttpClient.Redirect.NORMAL)
-                .build();
-
+    public void getPromotionGoods(int pageNo){
         // 从配置文件中读取cookie
         String cookie = Optional.of(this.getClass())
                .map(Class::getClassLoader)
@@ -77,7 +79,7 @@ public class JdUnionRobot {
 
         // 拼传入的参数
         JSONObject mainJson = new JSONObject();
-        mainJson.put("pageNo", 1);
+        mainJson.put("pageNo", pageNo);
         mainJson.put("pageSize", 60);
         mainJson.put("searchUUID", "4a5fe0385949423ebcb9e9a7989b69aa");
 
@@ -127,7 +129,7 @@ public class JdUnionRobot {
             e.printStackTrace();
         }*/
 
-        new JdUnionRobot().getPromotionGoods();
+        new JdUnionRobot().getPromotionGoods(1);
     }
 
     private String buildSign(String timestamp,
